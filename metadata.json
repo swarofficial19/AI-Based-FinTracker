@@ -1,0 +1,6 @@
+{
+  "name": "FinTracker AI",
+  "description": "Smart Tracking. Intelligent Insights. Better Financial Future. University-level AI/ML personal finance management platform.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
