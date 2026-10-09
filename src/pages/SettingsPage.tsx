@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card } from '../components/common/Card';
 import { isMockMode, setMockModeOverride, getApiBaseUrl } from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -22,11 +22,20 @@ export const SettingsPage: React.FC = () => {
   const [isTesting, setIsTesting] = useState(false);
 
   // Profile update form
-  const [name, setName] = useState(user?.name || 'Arjun Sharma');
-  const [monthlyIncome, setMonthlyIncome] = useState(user?.monthlyIncome || 65000);
-  const [monthlyExpenses, setMonthlyExpenses] = useState(user?.monthlyExpenses || 38500);
-  const [currentSavings, setCurrentSavings] = useState(user?.currentSavings || 148250);
+  const [name, setName] = useState(user?.name ?? '');
+  const [monthlyIncome, setMonthlyIncome] = useState(user?.monthlyIncome ?? 0);
+  const [monthlyExpenses, setMonthlyExpenses] = useState(user?.monthlyExpenses ?? 0);
+  const [currentSavings, setCurrentSavings] = useState(user?.currentSavings ?? 0);
   const [profileSuccess, setProfileSuccess] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      setName(user.name ?? '');
+      setMonthlyIncome(user.monthlyIncome ?? 0);
+      setMonthlyExpenses(user.monthlyExpenses ?? 0);
+      setCurrentSavings(user.currentSavings ?? 0);
+    }
+  }, [user]);
 
   const handleToggleMock = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.checked;

@@ -6,7 +6,6 @@ import {
   PiggyBank,
   ArrowRight,
   Receipt,
-  Sparkles,
 } from 'lucide-react';
 import { MetricCard } from '../components/dashboard/MetricCard';
 import { IncomeExpenseChart } from '../components/dashboard/IncomeExpenseChart';
@@ -128,38 +127,6 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           comparisonLabel="vs last month"
           icon={PiggyBank}
         />
-      </div>
-
-      {/* University ML Models Highlight Banner */}
-      <div className="rounded-xl border border-slate-200 bg-linear-to-r from-slate-900 via-slate-800 to-slate-900 p-4 sm:p-5 text-white shadow-xs">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-start gap-3">
-            <div className="p-2 rounded-lg bg-white/10 text-emerald-400 shrink-0">
-              <Sparkles className="h-5 w-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h4 className="text-sm font-semibold tracking-tight text-white">
-                  5 Custom-Trained Machine Learning Models Active
-                </h4>
-                <span className="text-[10px] bg-emerald-500/20 text-emerald-300 font-mono px-2 py-0.5 rounded border border-emerald-500/30">
-                  scikit-learn
-                </span>
-              </div>
-              <p className="text-xs text-slate-300 mt-0.5">
-                TF-IDF Expense Classifier · Extra Trees Spending Regressor · Random Forest Well-Being · BANKING77 Intent SVM · Risk Tolerance Regressor.
-              </p>
-            </div>
-          </div>
-
-          <button
-            onClick={() => setActiveTab('ai-insights')}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-900 bg-white hover:bg-slate-100 rounded-lg transition-colors shrink-0"
-          >
-            <span>Inspect Models</span>
-            <ArrowRight className="h-3.5 w-3.5" />
-          </button>
-        </div>
       </div>
 
       {/* Charts Grid: Row 1 */}

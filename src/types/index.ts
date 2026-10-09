@@ -43,6 +43,7 @@ export interface UserProfile {
   name: string;
   email: string;
   avatar?: string;
+  photoURL?: string;
   monthlyIncome: number;
   monthlyExpenses: number;
   currentSavings: number;

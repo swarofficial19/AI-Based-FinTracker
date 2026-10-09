@@ -20,6 +20,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onSuccess }) => {
   // States
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [infoMessage, setInfoMessage] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -120,6 +121,12 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onSuccess }) => {
             </div>
           )}
 
+          {infoMessage && (
+            <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-3 text-xs text-emerald-800 mb-4">
+              {infoMessage}
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-4">
             {mode === 'register' && (
               <div>
@@ -132,7 +139,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onSuccess }) => {
                     type="text"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="Arjun Sharma"
+                    placeholder="e.g. Priya Patel"
                     className="w-full rounded-lg border border-slate-300 pl-9 pr-3 py-2 text-xs text-slate-900 focus:outline-hidden focus:border-slate-900"
                     required
                   />
@@ -150,7 +157,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onSuccess }) => {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="arjun.sharma@fintracker.ai"
+                  placeholder="you@example.com"
                   className="w-full rounded-lg border border-slate-300 pl-9 pr-3 py-2 text-xs text-slate-900 focus:outline-hidden focus:border-slate-900"
                   required
                 />
@@ -206,7 +213,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onSuccess }) => {
                 </label>
                 <button
                   type="button"
-                  onClick={() => alert('Password reset link will be sent to registered email.')}
+                  onClick={() => setInfoMessage('Password reset link has been dispatched to your registered email address.')}
                   className="text-slate-500 hover:text-slate-900 font-medium"
                 >
                   Forgot password?

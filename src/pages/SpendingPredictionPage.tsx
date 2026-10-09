@@ -75,7 +75,7 @@ export const SpendingPredictionPage: React.FC = () => {
     loadData();
   }, []);
 
-  // Insert sample 4-month mock transactions if user has insufficient data
+  // Insert sample 4-month benchmark transactions if user has insufficient data
   const handleInsertSampleData = async () => {
     setIsLoading(true);
     setActionMessage(null);

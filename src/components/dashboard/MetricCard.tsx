@@ -20,6 +20,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   isExpense = false,
 }) => {
   // For expenses, a decrease is positive (favorable)
+  const isZero = changePct === 0;
   const isPositiveDirection = isExpense ? changePct < 0 : changePct > 0;
   const absPct = Math.abs(changePct).toFixed(1);
 
@@ -40,18 +41,22 @@ export const MetricCard: React.FC<MetricCardProps> = ({
         <div className="mt-2 flex items-center gap-1.5 text-xs">
           <span
             className={`inline-flex items-center font-medium font-mono tabular-nums ${
-              isPositiveDirection ? 'text-emerald-800 font-semibold' : 'text-rose-800 font-semibold'
+              isZero
+                ? 'text-slate-500 font-normal'
+                : isPositiveDirection
+                ? 'text-emerald-800 font-semibold'
+                : 'text-rose-800 font-semibold'
             }`}
           >
-            {changePct > 0 ? (
+            {!isZero && (changePct > 0 ? (
               <TrendingUp className="mr-0.5 h-3.5 w-3.5 inline" />
             ) : (
               <TrendingDown className="mr-0.5 h-3.5 w-3.5 inline" />
-            )}
-            {changePct > 0 ? `+${absPct}%` : `-${absPct}%`}
+            ))}
+            {isZero ? '0.0%' : changePct > 0 ? `+${absPct}%` : `-${absPct}%`}
           </span>
           <span className="text-slate-600 font-normal">·</span>
-          <span className="text-slate-600">{comparisonLabel}</span>
+          <span className="text-slate-600">{isZero ? 'no previous data' : comparisonLabel}</span>
         </div>
       </div>
     </div>

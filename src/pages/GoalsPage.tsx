@@ -24,6 +24,7 @@ export const GoalsPage: React.FC = () => {
   const [monthlyContribution, setMonthlyContribution] = useState('');
   const [category, setCategory] = useState('Asset');
   const [isSaving, setIsSaving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const fetchGoals = async () => {
     setLoading(true);
@@ -51,6 +52,7 @@ export const GoalsPage: React.FC = () => {
     setMonthlyContribution('');
     setTargetDate('2027-12-31');
     setCategory('Asset');
+    setFormError(null);
     setIsModalOpen(true);
   };
 
@@ -62,24 +64,24 @@ export const GoalsPage: React.FC = () => {
     setMonthlyContribution(String(goal.monthlyContribution));
     setTargetDate(goal.targetDate);
     setCategory(goal.category || 'Asset');
+    setFormError(null);
     setIsModalOpen(true);
   };
 
   const handleDelete = async (id: string) => {
-    if (window.confirm('Delete this financial milestone goal?')) {
-      await api.deleteGoal(id);
-      await fetchGoals();
-    }
+    await api.deleteGoal(id);
+    await fetchGoals();
   };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormError(null);
     const tAmount = parseFloat(targetAmount);
     const cAmount = parseFloat(currentAmount) || 0;
     const mContrib = parseFloat(monthlyContribution) || 0;
 
     if (!name.trim() || isNaN(tAmount) || tAmount <= 0) {
-      alert('Please enter a valid goal name and target amount.');
+      setFormError('Please enter a valid goal name and target amount greater than zero.');
       return;
     }
 
@@ -247,6 +249,11 @@ export const GoalsPage: React.FC = () => {
         subtitle="Capital accumulation milestone"
       >
         <form onSubmit={handleSave} className="space-y-4">
+          {formError && (
+            <div className="rounded-lg bg-rose-50 border border-rose-200 p-2.5 text-xs text-rose-700">
+              {formError}
+            </div>
+          )}
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1">Goal Title</label>
             <input

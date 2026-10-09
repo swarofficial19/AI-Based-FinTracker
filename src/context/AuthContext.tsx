@@ -5,8 +5,7 @@ import { authService } from '../services/auth';
 interface AuthContextType {
   user: UserProfile | null;
   isAuthenticated: boolean;
-  login: (email: string, pass: string) => Promise<void>;
-  register: (name: string, email: string, pass: string) => Promise<void>;
+  loginWithGoogle: () => Promise<void>;
   logout: () => void;
   updateLocalProfile: (profile: Partial<UserProfile>) => void;
 }
@@ -25,14 +24,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
-  const login = async (email: string, pass: string) => {
-    const res = await authService.login(email, pass);
-    setUser(res.user);
-    setIsAuthenticated(true);
-  };
-
-  const register = async (name: string, email: string, pass: string) => {
-    const res = await authService.register(name, email, pass);
+  const loginWithGoogle = async () => {
+    const res = await authService.loginWithGoogle();
     setUser(res.user);
     setIsAuthenticated(true);
   };
@@ -55,8 +48,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       value={{
         user,
         isAuthenticated,
-        login,
-        register,
+        loginWithGoogle,
         logout,
         updateLocalProfile,
       }}

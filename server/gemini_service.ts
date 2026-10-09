@@ -266,8 +266,12 @@ In 2-3 encouraging, practical sentences, explain what the "${ctx.category}" well
       `Your inquiry has been categorized under "${ctx.readableIntent}" by the ${ctx.model} (${(ctx.confidence * 100).toFixed(0)}% confidence).`;
 
     const financialDetails = ctx.financialContext
-      ? `\nActive User Ledger Facts:\n- Monthly Income: ₹${(ctx.financialContext.monthlyIncome ?? 65000).toLocaleString('en-IN')}\n- Monthly Expenses: ₹${(ctx.financialContext.monthlyExpenses ?? 38500).toLocaleString('en-IN')}\n- Current Savings: ₹${(ctx.financialContext.currentSavings ?? 148250).toLocaleString('en-IN')}\n- Emergency Fund Reserve: ₹${(ctx.financialContext.emergencyFund ?? 100000).toLocaleString('en-IN')}\n- Top Recorded Expense Categories: Shopping (₹6,189), Travel (₹5,400), Groceries (₹3,420), Utilities (₹2,800), Food & Dining (₹3,420)`
-      : `\nActive User Ledger Facts:\n- Monthly Income: ₹65,000\n- Monthly Expenses: ₹38,500\n- Current Savings: ₹1,48,250\n- Emergency Fund Reserve: ₹1,00,000`;
+      ? `\nActive User Ledger Facts:\n- Monthly Income: ₹${(ctx.financialContext.monthlyIncome ?? 0).toLocaleString('en-IN')}\n- Monthly Expenses: ₹${(ctx.financialContext.monthlyExpenses ?? 0).toLocaleString('en-IN')}\n- Current Savings: ₹${(ctx.financialContext.currentSavings ?? 0).toLocaleString('en-IN')}\n- Emergency Fund Reserve: ₹${(ctx.financialContext.emergencyFund ?? 0).toLocaleString('en-IN')}${
+          ctx.financialContext.topExpenseCategories && ctx.financialContext.topExpenseCategories.length > 0
+            ? `\n- Top Recorded Expense Categories: ${ctx.financialContext.topExpenseCategories.map((c) => `${c.category} (₹${c.amount.toLocaleString('en-IN')})`).join(', ')}`
+            : '\n- Top Recorded Expense Categories: None (0 transactions recorded yet)'
+        }`
+      : `\nActive User Ledger Facts:\n- Monthly Income: ₹0\n- Monthly Expenses: ₹0\n- Current Savings: ₹0\n- Emergency Fund Reserve: ₹0\n- Top Recorded Expense Categories: None`;
 
     const prompt = `You are FinTracker's Banking & Financial Intelligence Expert.
 The user is asking this exact question in the Banking AI Assistant:
@@ -294,7 +298,7 @@ REQUIREMENTS FOR AN EXACT, DEFINITIVE, HIGH-QUALITY ANSWER:
      * Fraud, Unauthorized Charges & Chargebacks: Detail immediate card freeze procedures, RBI's Zero Liability Policy (zero customer liability if reported within 3 calendar days; limited liability within 4-7 days), how to obtain dispute reference numbers, and reporting to National Cyber Crime Reporting Portal (Helpline 1930 / cybercrime.gov.in).
      * Beneficiaries & Security: Mention mandatory cooling-off windows (30 mins to 4 hours) and first 24-hour transfer caps (₹25,000–₹50,000) for newly added beneficiaries.
      * Limits & Regulations: State official limits (UPI daily limit of ₹1 Lakh standard, up to ₹5 Lakhs for hospital/education; IMPS up to ₹5 Lakhs; standard ATM cash limits of ₹25,000–₹50,000).
-     * Personal Finance & Ledger Queries: If the user asks about their own spending, income, budget, or savings, cite their exact FinTracker numbers: Monthly Income ₹65,000, Total Expenses ₹38,500, Monthly Surplus ₹26,500, Current Savings ₹1,48,250, Emergency Reserve ₹1,00,000.
+     * Personal Finance & Ledger Queries: If the user asks about their own spending, income, budget, or savings, cite their exact FinTracker numbers from the Active User Ledger Facts above. If their monthly expenses and income are ₹0, state clearly that their account currently has zero recorded transactions and everything is at ₹0.
 
 3. ACTIONABLE STEP-BY-STEP GUIDANCE:
    - Provide 2 to 3 clear, concrete next steps the user should perform right now (e.g. specific menu in mobile banking app, tracking via UTR, or contacting bank grievance redressal / RBI Ombudsman).
@@ -318,7 +322,7 @@ REQUIREMENTS FOR AN EXACT, DEFINITIVE, HIGH-QUALITY ANSWER:
     const fallback = `Your investment risk profile evaluates to "${ctx.riskCategory}" (score ${ctx.riskScore.toFixed(2)}/7.0) by the ${ctx.model}. This suggests maintaining an appropriate balance between equity growth and debt stability.`;
 
     const prompt = `The Investment Risk Model "${ctx.model}" calculated an investment risk score of ${ctx.riskScore.toFixed(2)} / 7.0, classifying risk tolerance as "${ctx.riskCategory}".
-Financial profile context: Age ${ctx.age ?? 26}, Monthly Income ₹${(ctx.income ?? 65000).toLocaleString('en-IN')}, Expenses ₹${(ctx.expenses ?? 38500).toLocaleString('en-IN')}, Savings ₹${(ctx.savings ?? 148250).toLocaleString('en-IN')}.
+Financial profile context: Age ${ctx.age ?? 25}, Monthly Income ₹${(ctx.income ?? 0).toLocaleString('en-IN')}, Expenses ₹${(ctx.expenses ?? 0).toLocaleString('en-IN')}, Savings ₹${(ctx.savings ?? 0).toLocaleString('en-IN')}.
 
 In 2-3 clear, prudent sentences, explain what a "${ctx.riskCategory}" risk classification (score ${ctx.riskScore.toFixed(2)}) means for their investment portfolio and asset allocation. Emphasize that this is an analytical estimate for educational guidance.`;
 

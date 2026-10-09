@@ -1,6 +1,5 @@
 import React from 'react';
-import { Menu, Plus, Bell, Radio } from 'lucide-react';
-import { isMockMode } from '../../services/api';
+import { Menu, Plus, Bell } from 'lucide-react';
 import { NavTab } from './Sidebar';
 
 interface TopbarProps {
@@ -61,7 +60,6 @@ export const Topbar: React.FC<TopbarProps> = ({
     title: 'Dashboard',
     subtitle: 'Personal Finance Command Center',
   };
-  const mockMode = isMockMode();
 
   return (
     <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b border-slate-200 bg-white/95 px-4 sm:px-6 backdrop-blur-xs">
@@ -88,14 +86,8 @@ export const Topbar: React.FC<TopbarProps> = ({
         </div>
       </div>
 
-      {/* Right zone: API status pill, Actions */}
+      {/* Right zone: Actions */}
       <div className="flex items-center gap-2.5 sm:gap-3">
-        {/* Backend mode indicator */}
-        <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 text-xs font-mono text-slate-700 bg-slate-100 rounded-md border border-slate-200/80">
-          <Radio className={`h-3 w-3 ${mockMode ? 'text-amber-500 animate-pulse' : 'text-emerald-500'}`} />
-          <span>{mockMode ? 'Mock API Adapter' : 'FastAPI Connected'}</span>
-        </div>
-
         {/* Quick Add Transaction Button */}
         <button
           onClick={onOpenAddTx}

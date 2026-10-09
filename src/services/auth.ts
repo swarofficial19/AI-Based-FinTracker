@@ -6,6 +6,26 @@ export interface AuthResponse {
   user: UserProfile;
 }
 
+function getStoredProfiles(): Record<string, UserProfile> {
+  try {
+    const raw = localStorage.getItem('fintracker_registered_users');
+    if (raw) return JSON.parse(raw);
+  } catch {
+    // ignore
+  }
+  return {};
+}
+
+function saveStoredProfile(user: UserProfile) {
+  try {
+    const all = getStoredProfiles();
+    all[user.email.toLowerCase()] = user;
+    localStorage.setItem('fintracker_registered_users', JSON.stringify(all));
+  } catch {
+    // ignore
+  }
+}
+
 export const authService = {
   async login(email: string, password: string): Promise<AuthResponse> {
     if (!email || !password) {
@@ -16,18 +36,43 @@ export const authService = {
       // Simulate network latency
       await new Promise((r) => setTimeout(r, 200));
 
-      // Mock user profile
-      const user: UserProfile = {
-        id: 'usr_fintracker_demo',
-        name: email.split('@')[0].replace('.', ' ').replace(/\b\w/g, (c) => c.toUpperCase()) || 'Arjun Sharma',
-        email,
-        monthlyIncome: 65000,
-        monthlyExpenses: 38500,
-        currentSavings: 148250,
-        emergencyFund: 100000,
-        riskTolerance: 'Moderate',
-      };
-      const token = `jwt_mock_${Date.now()}_${btoa(email)}`;
+      const cleanEmail = email.trim().toLowerCase();
+      const isDemo = cleanEmail === 'arjun.sharma@fintracker.ai';
+
+      let user: UserProfile;
+
+      if (isDemo) {
+        user = {
+          id: 'usr_fintracker_demo',
+          name: 'Arjun Sharma',
+          email: 'arjun.sharma@fintracker.ai',
+          monthlyIncome: 65000,
+          monthlyExpenses: 38500,
+          currentSavings: 148250,
+          emergencyFund: 100000,
+          riskTolerance: 'Moderate',
+        };
+      } else {
+        // Look up registered profile or initialize clean zero-data user
+        const allProfiles = getStoredProfiles();
+        if (allProfiles[cleanEmail]) {
+          user = allProfiles[cleanEmail];
+        } else {
+          user = {
+            id: `usr_${btoa(cleanEmail).replace(/[^a-zA-Z0-9]/g, '').slice(0, 12)}`,
+            name: email.split('@')[0].replace('.', ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
+            email: cleanEmail,
+            monthlyIncome: 0,
+            monthlyExpenses: 0,
+            currentSavings: 0,
+            emergencyFund: 0,
+            riskTolerance: 'Moderate',
+          };
+          saveStoredProfile(user);
+        }
+      }
+
+      const token = `jwt_mock_${Date.now()}_${btoa(cleanEmail)}`;
       localStorage.setItem('fintracker_jwt_token', token);
       localStorage.setItem('fintracker_current_user', JSON.stringify(user));
       return { token, user };
@@ -58,17 +103,33 @@ export const authService = {
 
     if (isMockMode()) {
       await new Promise((r) => setTimeout(r, 250));
-      const user: UserProfile = {
-        id: `usr_${Date.now()}`,
-        name,
-        email,
-        monthlyIncome: 65000,
-        monthlyExpenses: 38500,
-        currentSavings: 148250,
-        emergencyFund: 100000,
-        riskTolerance: 'Moderate',
-      };
-      const token = `jwt_mock_${Date.now()}_${btoa(email)}`;
+      const cleanEmail = email.trim().toLowerCase();
+      const isDemo = cleanEmail === 'arjun.sharma@fintracker.ai';
+
+      const user: UserProfile = isDemo
+        ? {
+            id: 'usr_fintracker_demo',
+            name: 'Arjun Sharma',
+            email: 'arjun.sharma@fintracker.ai',
+            monthlyIncome: 65000,
+            monthlyExpenses: 38500,
+            currentSavings: 148250,
+            emergencyFund: 100000,
+            riskTolerance: 'Moderate',
+          }
+        : {
+            id: `usr_${btoa(cleanEmail).replace(/[^a-zA-Z0-9]/g, '').slice(0, 12)}`,
+            name: name.trim(),
+            email: cleanEmail,
+            monthlyIncome: 0,
+            monthlyExpenses: 0,
+            currentSavings: 0,
+            emergencyFund: 0,
+            riskTolerance: 'Moderate',
+          };
+
+      saveStoredProfile(user);
+      const token = `jwt_mock_${Date.now()}_${btoa(cleanEmail)}`;
       localStorage.setItem('fintracker_jwt_token', token);
       localStorage.setItem('fintracker_current_user', JSON.stringify(user));
       return { token, user };
@@ -103,20 +164,10 @@ export const authService = {
     } catch {
       // ignore
     }
-    // Default demo session if none set
-    return {
-      id: 'usr_fintracker_demo',
-      name: 'Arjun Sharma',
-      email: 'arjun.sharma@fintracker.ai',
-      monthlyIncome: 65000,
-      monthlyExpenses: 38500,
-      currentSavings: 148250,
-      emergencyFund: 100000,
-      riskTolerance: 'Moderate',
-    };
+    return null;
   },
 
   isAuthenticated(): boolean {
-    return !!localStorage.getItem('fintracker_jwt_token') || !!localStorage.getItem('fintracker_current_user');
+    return !!localStorage.getItem('fintracker_jwt_token') && !!localStorage.getItem('fintracker_current_user');
   },
 };

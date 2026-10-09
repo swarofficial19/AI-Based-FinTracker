@@ -3,18 +3,24 @@ import { Card } from '../components/common/Card';
 import { RiskMeter } from '../components/advisor/RiskMeter';
 import { AllocationChart } from '../components/advisor/AllocationChart';
 import { api } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import { InvestmentRiskResponse, InvestmentRecommendationResponse } from '../types';
 import { formatINR } from '../utils/formatters';
 import { ShieldCheck, Play, Loader2, ArrowRight, Sparkles, SlidersHorizontal, Cpu, Layers } from 'lucide-react';
 
 export const InvestmentAdvisorPage: React.FC = () => {
-  // Input form state
-  const [age, setAge] = useState(26);
-  const [income, setIncome] = useState(65000);
-  const [expenses, setExpenses] = useState(38500);
-  const [savings, setSavings] = useState(148250);
-  const [emergencyFund, setEmergencyFund] = useState(100000);
-  const [investAmount, setInvestAmount] = useState(10000);
+  const { user } = useAuth();
+  const isDemo =
+    user?.id === 'usr_fintracker_demo' ||
+    user?.email?.toLowerCase() === 'arjun.sharma@fintracker.ai';
+
+  // Input form state: Demo account gets sample numbers, new users start with clean zero baseline
+  const [age, setAge] = useState(isDemo ? 26 : 25);
+  const [income, setIncome] = useState(isDemo ? 65000 : (user?.monthlyIncome ?? 0));
+  const [expenses, setExpenses] = useState(isDemo ? 38500 : (user?.monthlyExpenses ?? 0));
+  const [savings, setSavings] = useState(isDemo ? 148250 : (user?.currentSavings ?? 0));
+  const [emergencyFund, setEmergencyFund] = useState(isDemo ? 100000 : (user?.emergencyFund ?? 0));
+  const [investAmount, setInvestAmount] = useState(isDemo ? 10000 : 0);
   const [goal, setGoal] = useState('Wealth Creation');
   const [horizonYears, setHorizonYears] = useState(7);
 
@@ -45,6 +51,12 @@ export const InvestmentAdvisorPage: React.FC = () => {
     const inv = overrideParams?.investAmount ?? investAmount;
     const g = overrideParams?.goal ?? goal;
     const hor = overrideParams?.horizonYears ?? horizonYears;
+
+    if (inc <= 0 && exp <= 0 && inv <= 0) {
+      setError('Please specify your monthly income and investment budget to generate active allocations.');
+      setLoading(false);
+      return;
+    }
 
     try {
       // Step 1: Call Model 5 (Random Forest Regressor)
@@ -83,8 +95,25 @@ export const InvestmentAdvisorPage: React.FC = () => {
   };
 
   useEffect(() => {
-    runAdvisoryEngine();
-  }, []);
+    if (isDemo) {
+      setAge(26);
+      setIncome(65000);
+      setExpenses(38500);
+      setSavings(148250);
+      setEmergencyFund(100000);
+      setInvestAmount(10000);
+      runAdvisoryEngine();
+    } else {
+      setAge(25);
+      setIncome(user?.monthlyIncome ?? 0);
+      setExpenses(user?.monthlyExpenses ?? 0);
+      setSavings(user?.currentSavings ?? 0);
+      setEmergencyFund(user?.emergencyFund ?? 0);
+      setInvestAmount(0);
+      setRiskData(null);
+      setRecData(null);
+    }
+  }, [user?.id, isDemo]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -340,7 +369,7 @@ export const InvestmentAdvisorPage: React.FC = () => {
                 <input
                   type="number"
                   step="1000"
-                  min="500"
+                  min="0"
                   value={investAmount}
                   onChange={(e) => setInvestAmount(Number(e.target.value))}
                   className="w-full rounded-lg border border-slate-300 px-3 py-2 text-xs font-mono"
@@ -368,7 +397,7 @@ export const InvestmentAdvisorPage: React.FC = () => {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-slate-900 py-2.5 text-xs font-semibold text-white hover:bg-slate-800 disabled:opacity-50 transition-colors shadow-xs"
+                  className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-slate-900 py-2.5 text-xs font-semibold text-white hover:bg-slate-800 disabled:opacity-50 transition-colors shadow-xs cursor-pointer"
                 >
                   {loading ? (
                     <>
@@ -389,16 +418,29 @@ export const InvestmentAdvisorPage: React.FC = () => {
 
         {/* Right Column: Risk Meter & Comprehensive Allocation Chart */}
         <div className="lg:col-span-7 space-y-6">
-          {riskData && (
-            <RiskMeter
-              score={riskData.risk_score}
-              category={riskData.risk_category}
-              model={riskData.model}
-              breakdown={riskData.breakdown}
-            />
+          {!riskData && !recData ? (
+            <div className="rounded-xl border border-dashed border-slate-200 bg-white p-8 text-center shadow-xs flex flex-col items-center justify-center min-h-[380px]">
+              <div className="h-12 w-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 mb-3">
+                <SlidersHorizontal className="h-6 w-6" />
+              </div>
+              <h3 className="text-sm font-bold text-slate-800">No Active Investment Recommendation Yet</h3>
+              <p className="text-xs text-slate-500 mt-1 max-w-md leading-relaxed">
+                New accounts start with zero data across all metrics. Enter your income and monthly investment budget on the left, or select a scenario preset, and click <strong>Generate AI Investment Recommendation</strong> to run Model 5.
+              </p>
+            </div>
+          ) : (
+            <>
+              {riskData && (
+                <RiskMeter
+                  score={riskData.risk_score}
+                  category={riskData.risk_category}
+                  model={riskData.model}
+                  breakdown={riskData.breakdown}
+                />
+              )}
+              {recData && <AllocationChart recommendation={recData} />}
+            </>
           )}
-
-          {recData && <AllocationChart recommendation={recData} />}
         </div>
       </div>
     </div>

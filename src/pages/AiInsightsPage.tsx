@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { Card } from '../components/common/Card';
 import { api } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import {
   CategorizeExpenseResponse,
   PredictSpendingResponse,
@@ -24,17 +25,30 @@ import {
 import { formatINR } from '../utils/formatters';
 
 export const AiInsightsPage: React.FC = () => {
+  const { user } = useAuth();
+  const isDemo =
+    user?.id === 'usr_fintracker_demo' ||
+    user?.email?.toLowerCase() === 'arjun.sharma@fintracker.ai';
+
   // Model 1: Expense Categorization Test State
-  const [m1Input, setM1Input] = useState('Bought fresh organic vegetables from local market');
+  const [m1Input, setM1Input] = useState(
+    isDemo ? 'Bought fresh organic vegetables from local market' : ''
+  );
   const [m1Loading, setM1Loading] = useState(false);
-  const [m1Result, setM1Result] = useState<CategorizeExpenseResponse | null>({
-    category: 'Groceries',
-    confidence: 0.94,
-    model: 'TF-IDF + Logistic Regression',
-  });
+  const [m1Result, setM1Result] = useState<CategorizeExpenseResponse | null>(
+    isDemo
+      ? {
+          category: 'Groceries',
+          confidence: 0.94,
+          model: 'TF-IDF + Logistic Regression',
+        }
+      : null
+  );
 
   // Model 2: Spending Prediction Test State (Real FastAPI: POST /api/ai/predict-spending)
-  const [m2SpendingInput, setM2SpendingInput] = useState<string>('36200, 39400, 37800, 40100');
+  const [m2SpendingInput, setM2SpendingInput] = useState<string>(
+    isDemo ? '36200, 39400, 37800, 40100' : '0, 0, 0, 0'
+  );
   const [m2Loading, setM2Loading] = useState(false);
   const [m2Error, setM2Error] = useState<string | null>(null);
   const [m2Result, setM2Result] = useState<PredictSpendingResponse | null>(null);
@@ -45,26 +59,36 @@ export const AiInsightsPage: React.FC = () => {
   const [m3Result, setM3Result] = useState<FinancialWellbeingResponse | null>(null);
 
   // Model 4: Banking Intent Test State
-  const [m4Input, setM4Input] = useState('Why has my transfer not reached the recipient?');
+  const [m4Input, setM4Input] = useState(
+    isDemo ? 'Why has my transfer not reached the recipient?' : ''
+  );
   const [m4Loading, setM4Loading] = useState(false);
-  const [m4Result, setM4Result] = useState<BankingIntentResponse | null>({
-    intent: 'transfer_not_received_by_recipient',
-    readable_intent: 'Transfer Not Received by Recipient',
-    confidence: 0.94,
-    model: 'TF-IDF + Linear SVM (BANKING77)',
-    suggested_action: 'Verify beneficiary UTR number with bank clearance window.',
-  });
+  const [m4Result, setM4Result] = useState<BankingIntentResponse | null>(
+    isDemo
+      ? {
+          intent: 'transfer_not_received_by_recipient',
+          readable_intent: 'Transfer Not Received by Recipient',
+          confidence: 0.94,
+          model: 'TF-IDF + Linear SVM (BANKING77)',
+          suggested_action: 'Verify beneficiary UTR number with bank clearance window.',
+        }
+      : null
+  );
 
   // Model 5: Investment Risk State
-  const [m5Age, setM5Age] = useState(26);
+  const [m5Age, setM5Age] = useState(isDemo ? 26 : 25);
   const [m5Horizon, setM5Horizon] = useState(5);
   const [m5Loading, setM5Loading] = useState(false);
-  const [m5Result, setM5Result] = useState<InvestmentRiskResponse | null>({
-    risk_score: 3.67,
-    risk_category: 'Moderate',
-    model: 'Random Forest Regressor',
-    breakdown: { capacity_score: 4.1, horizon_factor: 5, stability_factor: 2.6 },
-  });
+  const [m5Result, setM5Result] = useState<InvestmentRiskResponse | null>(
+    isDemo
+      ? {
+          risk_score: 3.67,
+          risk_category: 'Moderate',
+          model: 'Random Forest Regressor',
+          breakdown: { capacity_score: 4.1, horizon_factor: 5, stability_factor: 2.6 },
+        }
+      : null
+  );
 
   // Handlers
   const handleTestM1 = async () => {
@@ -162,11 +186,11 @@ export const AiInsightsPage: React.FC = () => {
     try {
       const res = await api.predictInvestmentRisk({
         age: m5Age,
-        income: 65000,
-        expenses: 38500,
-        savings: 148250,
-        emergency_fund: 100000,
-        investment_amount: 10000,
+        income: isDemo ? 65000 : (user?.monthlyIncome ?? 0),
+        expenses: isDemo ? 38500 : (user?.monthlyExpenses ?? 0),
+        savings: isDemo ? 148250 : (user?.currentSavings ?? 0),
+        emergency_fund: isDemo ? 100000 : (user?.emergencyFund ?? 0),
+        investment_amount: isDemo ? 10000 : 0,
         goal: 'Wealth Creation',
         horizon_years: m5Horizon,
       });

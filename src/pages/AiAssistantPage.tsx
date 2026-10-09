@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Send,
   Sparkles,
@@ -12,16 +12,18 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { api } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import { AssistantMessage, BankingIntentResponse } from '../types';
 
-const INITIAL_MESSAGES: AssistantMessage[] = [
-  {
+function createWelcomeMessage(name?: string): AssistantMessage {
+  const displayName = name ? name : 'there';
+  return {
     id: 'msg_welcome',
     sender: 'assistant',
-    text: 'Hello Arjun! I am the FinTracker Banking & Personal Finance Assistant.\n\nEvery question is first classified through our custom-trained **BANKING77 Model** (TF-IDF + Linear SVM across 77 banking intent classes), and then enhanced by our private backend AI layer to deliver exact, technically precise answers tailored to Indian banking regulations and your active financial ledger.',
+    text: `Hello ${displayName}! I am the FinTracker Banking & Personal Finance Assistant.\n\nEvery question is first classified through our custom-trained **BANKING77 Model** (TF-IDF + Linear SVM across 77 banking intent classes), and then enhanced by our private backend AI layer to deliver exact, technically precise answers tailored to Indian banking regulations and your active financial ledger.`,
     timestamp: 'Just now',
-  },
-];
+  };
+}
 
 const SUGGESTED_QUERIES = [
   'Why has my transfer not reached the recipient?',
@@ -128,7 +130,20 @@ const FormattedMessage: React.FC<{ content: string; isUser: boolean }> = ({ cont
 };
 
 export const AiAssistantPage: React.FC = () => {
-  const [messages, setMessages] = useState<AssistantMessage[]>(INITIAL_MESSAGES);
+  const { user } = useAuth();
+  const userName = user?.name ? user.name : 'there';
+
+  const [messages, setMessages] = useState<AssistantMessage[]>(() => [createWelcomeMessage(user?.name)]);
+
+  useEffect(() => {
+    setMessages((prev) => {
+      if (prev.length === 1 && prev[0].id === 'msg_welcome') {
+        return [createWelcomeMessage(user?.name)];
+      }
+      return prev;
+    });
+  }, [user?.name]);
+
   const [inputQuery, setInputQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [expandedIntents, setExpandedIntents] = useState<Record<string, boolean>>({});

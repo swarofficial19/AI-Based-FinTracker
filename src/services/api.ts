@@ -297,18 +297,39 @@ export const api = {
         model: base.model,
         suggested_action: base.suggested_action,
         contextual_answer: base.contextual_answer,
-        financial_context: {
-          monthlyIncome: 65000,
-          monthlyExpenses: 38500,
-          currentSavings: 148250,
-          emergencyFund: 100000,
-          topExpenseCategories: [
-            { category: 'Shopping', amount: 6189 },
-            { category: 'Travel', amount: 5400 },
-            { category: 'Food & Dining', amount: 3420 },
-            { category: 'Utilities', amount: 2800 },
-          ],
-        },
+        financial_context: (() => {
+          let currUser: any = null;
+          try {
+            const raw = localStorage.getItem('fintracker_current_user');
+            if (raw) currUser = JSON.parse(raw);
+          } catch {
+            // ignore
+          }
+          const isDemo =
+            currUser?.id === 'usr_fintracker_demo' ||
+            currUser?.email?.toLowerCase() === 'arjun.sharma@fintracker.ai';
+          if (isDemo) {
+            return {
+              monthlyIncome: 65000,
+              monthlyExpenses: 38500,
+              currentSavings: 148250,
+              emergencyFund: 100000,
+              topExpenseCategories: [
+                { category: 'Shopping', amount: 6189 },
+                { category: 'Travel', amount: 5400 },
+                { category: 'Food & Dining', amount: 3420 },
+                { category: 'Utilities', amount: 2800 },
+              ],
+            };
+          }
+          return {
+            monthlyIncome: currUser?.monthlyIncome ?? 0,
+            monthlyExpenses: currUser?.monthlyExpenses ?? 0,
+            currentSavings: currUser?.currentSavings ?? 0,
+            emergencyFund: currUser?.emergencyFund ?? 0,
+            topExpenseCategories: [],
+          };
+        })(),
       },
       base
     );

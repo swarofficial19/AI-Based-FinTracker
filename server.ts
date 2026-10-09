@@ -1,4 +1,5 @@
-import express, { Request, Response } from 'express';
+import express from 'express';
+import type { Request, Response } from 'express';
 import { createServer as createViteServer } from 'vite';
 import dotenv from 'dotenv';
 import path from 'path';
@@ -200,10 +201,10 @@ async function startServer() {
       }
 
       const result = await geminiService.explainInvestmentRisk({
-        age: Number(age) || 26,
-        income: Number(income) || 65000,
-        expenses: Number(expenses) || 38500,
-        savings: Number(savings) || 148250,
+        age: age !== undefined ? Number(age) : 25,
+        income: income !== undefined ? Number(income) : 0,
+        expenses: expenses !== undefined ? Number(expenses) : 0,
+        savings: savings !== undefined ? Number(savings) : 0,
         riskScore: Number(risk_score),
         riskCategory: risk_category,
         model: model || 'Random Forest Regressor',
@@ -247,20 +248,20 @@ async function startServer() {
       }
 
       const result = await geminiService.explainInvestmentRecommendation({
-        age: Number(age) || 26,
-        income: Number(income) || 65000,
-        expenses: Number(expenses) || 38500,
-        savings: Number(savings) || 148250,
-        emergencyFund: Number(emergency_fund) || 100000,
-        investmentAmount: Number(investment_amount) || 10000,
+        age: age !== undefined ? Number(age) : 25,
+        income: income !== undefined ? Number(income) : 0,
+        expenses: expenses !== undefined ? Number(expenses) : 0,
+        savings: savings !== undefined ? Number(savings) : 0,
+        emergencyFund: emergency_fund !== undefined ? Number(emergency_fund) : 0,
+        investmentAmount: investment_amount !== undefined ? Number(investment_amount) : 0,
         goal: goal || 'Wealth Creation',
         horizonYears: Number(horizon_years) || 7,
         riskScore: Number(risk_score) || 4.0,
         riskCategory: risk_category,
         model: model || 'Random Forest Regressor',
-        emergencyTarget: Number(emergency_target) || 231000,
-        emergencyGap: Number(emergency_gap) || 0,
-        emergencyMonths: Number(emergency_months) || 3.0,
+        emergencyTarget: emergency_target !== undefined ? Number(emergency_target) : 0,
+        emergencyGap: emergency_gap !== undefined ? Number(emergency_gap) : 0,
+        emergencyMonths: emergency_months !== undefined ? Number(emergency_months) : 0,
         emergencyStatus: emergency_status || 'Healthy',
         safetyAdjustments: Array.isArray(safety_adjustments) ? safety_adjustments : [],
         recommendedCategories: recommended_categories.map((c: any) => ({
@@ -304,19 +305,6 @@ async function startServer() {
           difference: diff,
           pctChange: pct,
           topCategory: 'Food & Dining',
-        };
-      } else if (query.toLowerCase().includes('increase') || query.toLowerCase().includes('spend') || query.toLowerCase().includes('expense')) {
-        // Default historical baseline context if none provided
-        const prev = 36200;
-        const curr = 38500;
-        const diff = curr - prev;
-        const pct = (diff / prev) * 100;
-        spendingVariance = {
-          previousMonth: prev,
-          currentMonth: curr,
-          difference: diff,
-          pctChange: pct,
-          topCategory: 'Food & Dining and Shopping',
         };
       }
 

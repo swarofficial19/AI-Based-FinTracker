@@ -245,44 +245,89 @@ const INITIAL_GOALS: FinancialGoal[] = [
   },
 ];
 
-// Helper for local storage persistence in mock mode
-const STORAGE_KEYS = {
-  TRANSACTIONS: 'fintracker_transactions',
-  GOALS: 'fintracker_goals',
-  PROFILE: 'fintracker_profile',
-};
-
-function getStoredTransactions(): Transaction[] {
+// Helper for local storage persistence in mock mode with per-user data isolation
+function getCurrentUser(): UserProfile | null {
   try {
-    const raw = localStorage.getItem(STORAGE_KEYS.TRANSACTIONS);
+    const raw = localStorage.getItem('fintracker_current_user');
     if (raw) return JSON.parse(raw);
   } catch {
     // ignore
   }
-  return INITIAL_TRANSACTIONS;
+  return null;
+}
+
+function isCurrentUserDemo(): boolean {
+  const user = getCurrentUser();
+  if (!user) return false;
+  return (
+    user.id === 'usr_fintracker_demo' ||
+    user.email?.toLowerCase() === 'arjun.sharma@fintracker.ai'
+  );
+}
+
+function getCurrentUserId(): string {
+  const user = getCurrentUser();
+  if (user && user.id) return user.id;
+  return 'usr_new_user_default';
+}
+
+function getStoredTransactions(): Transaction[] {
+  const isDemo = isCurrentUserDemo();
+  const userId = getCurrentUserId();
+  const storageKey = isDemo ? 'fintracker_transactions_demo' : `fintracker_transactions_${userId}`;
+
+  try {
+    const raw = localStorage.getItem(storageKey);
+    if (raw) return JSON.parse(raw);
+  } catch {
+    // ignore
+  }
+
+  // Demo user starts with initial sample transactions.
+  // Any new user starts with ZERO transactions ([]).
+  if (isDemo) {
+    return INITIAL_TRANSACTIONS;
+  }
+  return [];
 }
 
 function saveStoredTransactions(txs: Transaction[]) {
+  const isDemo = isCurrentUserDemo();
+  const userId = getCurrentUserId();
+  const storageKey = isDemo ? 'fintracker_transactions_demo' : `fintracker_transactions_${userId}`;
   try {
-    localStorage.setItem(STORAGE_KEYS.TRANSACTIONS, JSON.stringify(txs));
+    localStorage.setItem(storageKey, JSON.stringify(txs));
   } catch {
     // ignore
   }
 }
 
 function getStoredGoals(): FinancialGoal[] {
+  const isDemo = isCurrentUserDemo();
+  const userId = getCurrentUserId();
+  const storageKey = isDemo ? 'fintracker_goals_demo' : `fintracker_goals_${userId}`;
+
   try {
-    const raw = localStorage.getItem(STORAGE_KEYS.GOALS);
+    const raw = localStorage.getItem(storageKey);
     if (raw) return JSON.parse(raw);
   } catch {
     // ignore
   }
-  return INITIAL_GOALS;
+
+  // Demo user starts with initial demo goals.
+  // Any new user starts with ZERO goals ([]).
+  if (isDemo) {
+    return INITIAL_GOALS;
+  }
+  return [];
 }
 
 function saveStoredGoals(goals: FinancialGoal[]) {
+  const isDemo = isCurrentUserDemo();
+  const userId = getCurrentUserId();
+  const storageKey = isDemo ? 'fintracker_goals_demo' : `fintracker_goals_${userId}`;
   try {
-    localStorage.setItem(STORAGE_KEYS.GOALS, JSON.stringify(goals));
+    localStorage.setItem(storageKey, JSON.stringify(goals));
   } catch {
     // ignore
   }
@@ -291,21 +336,96 @@ function saveStoredGoals(goals: FinancialGoal[]) {
 export const mockApiService = {
   async getProfile(): Promise<UserProfile> {
     await new Promise((r) => setTimeout(r, 120));
-    return INITIAL_PROFILE;
+    const user = getCurrentUser();
+    if (user) {
+      return user;
+    }
+    // Clean zero-data fallback if user session not found
+    return {
+      id: 'usr_new_user_default',
+      name: 'New User',
+      email: '',
+      monthlyIncome: 0,
+      monthlyExpenses: 0,
+      currentSavings: 0,
+      emergencyFund: 0,
+      riskTolerance: 'Moderate',
+    };
   },
 
   async getDashboard(): Promise<DashboardMetrics> {
     await new Promise((r) => setTimeout(r, 150));
+    const isDemo = isCurrentUserDemo();
+
+    if (isDemo) {
+      return {
+        totalBalance: 148250,
+        monthlyIncome: 65000,
+        monthlyExpenses: 38500,
+        monthlySavings: 26500,
+        savingsRate: 40.7,
+        balanceChangePct: 8.4,
+        incomeChangePct: 5.2,
+        expenseChangePct: -3.8,
+        savingsChangePct: 14.1,
+      };
+    }
+
+    // A NEW USER starts with everything at ZERO
+    const profile = await this.getProfile();
+    const txs = getStoredTransactions();
+
+    if (txs.length === 0) {
+      return {
+        totalBalance: profile.currentSavings || 0,
+        monthlyIncome: profile.monthlyIncome || 0,
+        monthlyExpenses: 0,
+        monthlySavings: 0,
+        savingsRate: 0,
+        balanceChangePct: 0,
+        incomeChangePct: 0,
+        expenseChangePct: 0,
+        savingsChangePct: 0,
+      };
+    }
+
+    // If new user has logged transactions, compute dynamically:
+    const now = new Date();
+    const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+    let currentMonthIncome = 0;
+    let currentMonthExpenses = 0;
+    let totalIncome = 0;
+    let totalExpenses = 0;
+
+    for (const tx of txs) {
+      const isCurrentMonth = tx.date && tx.date.startsWith(currentMonthKey);
+      if (tx.type === 'income') {
+        totalIncome += tx.amount;
+        if (isCurrentMonth) currentMonthIncome += tx.amount;
+      } else if (tx.type === 'expense') {
+        totalExpenses += tx.amount;
+        if (isCurrentMonth) currentMonthExpenses += tx.amount;
+      }
+    }
+
+    const effectiveIncome =
+      currentMonthIncome > 0 ? currentMonthIncome : (profile.monthlyIncome || 0);
+    const savings = Math.max(0, effectiveIncome - currentMonthExpenses);
+    const savingsRate =
+      effectiveIncome > 0 ? Number(((savings / effectiveIncome) * 100).toFixed(1)) : 0;
+    const balance = (profile.currentSavings || 0) + (totalIncome - totalExpenses);
+
     return {
-      totalBalance: 148250,
-      monthlyIncome: 65000,
-      monthlyExpenses: 38500,
-      monthlySavings: 26500,
-      savingsRate: 40.7,
-      balanceChangePct: 8.4,
-      incomeChangePct: 5.2,
-      expenseChangePct: -3.8,
-      savingsChangePct: 14.1,
+      totalBalance: Math.max(0, balance),
+      monthlyIncome: effectiveIncome,
+      monthlyExpenses: currentMonthExpenses,
+      monthlySavings: savings,
+      savingsRate,
+      balanceChangePct: 0,
+      incomeChangePct: 0,
+      expenseChangePct: 0,
+      savingsChangePct: 0,
     };
   },
 
@@ -316,11 +436,12 @@ export const mockApiService = {
 
   async createTransaction(txData: Omit<Transaction, 'id' | 'userId'>): Promise<Transaction> {
     await new Promise((r) => setTimeout(r, 180));
+    const userId = getCurrentUserId();
     const txs = getStoredTransactions();
     const newTx: Transaction = {
       ...txData,
       id: `tx_${Date.now()}`,
-      userId: INITIAL_PROFILE.id,
+      userId,
     };
     txs.unshift(newTx);
     saveStoredTransactions(txs);
@@ -348,12 +469,14 @@ export const mockApiService = {
 
   async insertSampleFourMonthTransactions(): Promise<Transaction[]> {
     await new Promise((r) => setTimeout(r, 200));
-    // Prepend or merge sample transactions so that June, July, August, September exist
+    const userId = getCurrentUserId();
     const current = getStoredTransactions();
     const existingIds = new Set(current.map((t) => t.id));
-    const toAdd = SAMPLE_4_MONTH_TRANSACTIONS.filter((t) => !existingIds.has(t.id));
+    const toAdd = SAMPLE_4_MONTH_TRANSACTIONS.filter((t) => !existingIds.has(t.id)).map((t) => ({
+      ...t,
+      userId,
+    }));
     const combined = [...toAdd, ...current];
-    // Sort by date descending
     combined.sort((a, b) => b.date.localeCompare(a.date));
     saveStoredTransactions(combined);
     return combined;
@@ -361,8 +484,14 @@ export const mockApiService = {
 
   async resetTransactions(): Promise<Transaction[]> {
     await new Promise((r) => setTimeout(r, 150));
-    localStorage.removeItem('fintracker_demo_transactions');
-    return INITIAL_TRANSACTIONS;
+    const isDemo = isCurrentUserDemo();
+    const userId = getCurrentUserId();
+    const storageKey = isDemo ? 'fintracker_transactions_demo' : `fintracker_transactions_${userId}`;
+    localStorage.removeItem(storageKey);
+    if (isDemo) {
+      return INITIAL_TRANSACTIONS;
+    }
+    return [];
   },
 
   async getGoals(): Promise<FinancialGoal[]> {
@@ -372,11 +501,12 @@ export const mockApiService = {
 
   async createGoal(goalData: Omit<FinancialGoal, 'id' | 'userId'>): Promise<FinancialGoal> {
     await new Promise((r) => setTimeout(r, 160));
+    const userId = getCurrentUserId();
     const goals = getStoredGoals();
     const newGoal: FinancialGoal = {
       ...goalData,
       id: `goal_${Date.now()}`,
-      userId: INITIAL_PROFILE.id,
+      userId,
     };
     goals.push(newGoal);
     saveStoredGoals(goals);
@@ -589,6 +719,18 @@ export const mockApiService = {
 
     // 6. Spending inquiry & expense breakdown
     if (/spending|how much did i spend|expenses this month|increase in expense|breakdown|ledger/.test(q)) {
+      const isDemo = isCurrentUserDemo();
+      const user = getCurrentUser();
+      if (!isDemo) {
+        return {
+          intent: 'spending_inquiry',
+          readable_intent: 'Spending and Expense Inquiries',
+          confidence: 0.94,
+          model: 'TF-IDF + Linear SVM (BANKING77)',
+          suggested_action: 'Record transactions in your ledger to generate analytics and forecasts.',
+          contextual_answer: `Based on your FinTracker ledger:\n- Total Monthly Expenses: ₹0 (No expenses recorded)\n- Monthly Income: ₹${(user?.monthlyIncome || 0).toLocaleString('en-IN')}\n- Net Monthly Savings Surplus: ₹0\n- Top Expenditure Categories: None yet\nNew accounts start at zero data. Log transactions in the Transactions tab to track your spending.`,
+        };
+      }
       return {
         intent: 'spending_inquiry',
         readable_intent: 'Spending and Expense Inquiries',
@@ -601,6 +743,17 @@ export const mockApiService = {
 
     // 7. Savings advice & emergency funds
     if (/save|how much should i save|savings advice|rule|50\/30\/20|emergency fund/.test(q)) {
+      const isDemo = isCurrentUserDemo();
+      if (!isDemo) {
+        return {
+          intent: 'savings_advice',
+          readable_intent: 'Savings Guideline & Allocation',
+          confidence: 0.92,
+          model: 'TF-IDF + Linear SVM (BANKING77)',
+          suggested_action: 'Enter your monthly income and expenses to receive custom 50/30/20 budgeting guidelines.',
+          contextual_answer: 'You currently have zero monthly expenses and zero income recorded in your ledger. Once you log your income and expenses, FinTracker will calculate your custom 50/30/20 budget allocations (50% Needs, 30% Wants, 20% Savings) and your 6-month liquid emergency reserve target.',
+        };
+      }
       return {
         intent: 'savings_advice',
         readable_intent: 'Savings Guideline & Allocation',
@@ -613,6 +766,17 @@ export const mockApiService = {
 
     // 8. Investment risk profile
     if (/risk|investment risk|risk score|profile|where to invest|advisor/.test(q)) {
+      const isDemo = isCurrentUserDemo();
+      if (!isDemo) {
+        return {
+          intent: 'investment_risk_inquiry',
+          readable_intent: 'Investment Risk Profile Assessment',
+          confidence: 0.93,
+          model: 'TF-IDF + Linear SVM (BANKING77)',
+          suggested_action: 'Configure your financial parameters in the Investment Advisor tab.',
+          contextual_answer: 'New user profiles start with all metrics at zero. Visit the Investment Advisor tab to enter your parameters and run Model 5 (Random Forest Regressor) for a personalized risk assessment and asset allocation.',
+        };
+      }
       return {
         intent: 'investment_risk_inquiry',
         readable_intent: 'Investment Risk Profile Assessment',
@@ -672,13 +836,19 @@ export const mockApiService = {
     }
 
     // 13. Comprehensive Intelligent Fallback for Any Other Banking Query
+    const user = getCurrentUser();
+    const isDemo = isCurrentUserDemo();
+    const metricsStr = isDemo
+      ? 'Current Income: ₹65,000, Expenses: ₹38,500, Savings: ₹26,500/mo'
+      : `Current Income: ₹${(user?.monthlyIncome || 0).toLocaleString('en-IN')}, Expenses: ₹${(user?.monthlyExpenses || 0).toLocaleString('en-IN')}`;
+
     return {
       intent: 'general_banking_advisory',
       readable_intent: 'Banking & Financial Guidance',
       confidence: 0.88,
       model: 'TF-IDF + Linear SVM (BANKING77)',
       suggested_action: 'Access your mobile banking services or verify corresponding transaction entries in your ledger.',
-      contextual_answer: `Regarding your query "${req.query}":\nFor standard personal banking procedures in India, all electronic payment systems (UPI, IMPS, NEFT) and card services operate under strict NPCI and RBI consumer protection frameworks. You can track transactions using the 12-digit UTR/RRN, manage card toggles and daily limits in your mobile banking app, and monitor your monthly financial trajectory (Current Income: ₹65,000, Expenses: ₹38,500, Savings: ₹26,500/mo) directly within FinTracker.`,
+      contextual_answer: `Regarding your query "${req.query}":\nFor standard personal banking procedures in India, all electronic payment systems (UPI, IMPS, NEFT) and card services operate under strict NPCI and RBI consumer protection frameworks. You can track transactions using the 12-digit UTR/RRN, manage card toggles and daily limits in your mobile banking app, and monitor your monthly financial trajectory (${metricsStr}) directly within FinTracker.`,
     };
   },
 
@@ -689,10 +859,24 @@ export const mockApiService = {
   async predictInvestmentRisk(req: InvestmentRiskRequest): Promise<InvestmentRiskResponse> {
     await new Promise((r) => setTimeout(r, 280));
     const age = req.age || 26;
-    const income = req.income || 65000;
-    const expenses = req.expenses || 38500;
-    const emergencyFund = req.emergency_fund || 100000;
+    const income = req.income ?? 0;
+    const expenses = req.expenses ?? 0;
+    const emergencyFund = req.emergency_fund ?? 0;
     const horizon = req.horizon_years || 5;
+
+    // Zero-data baseline for unconfigured profiles
+    if (income === 0 && expenses === 0 && emergencyFund === 0) {
+      return {
+        risk_score: 0,
+        risk_category: 'Conservative',
+        model: 'Random Forest Regressor',
+        breakdown: {
+          capacity_score: 0,
+          horizon_factor: horizon,
+          stability_factor: 0,
+        },
+      };
+    }
 
     const surplus = Math.max(0, income - expenses);
     const surplusRatio = income > 0 ? surplus / income : 0;
@@ -742,14 +926,49 @@ export const mockApiService = {
   async getInvestmentRecommendation(req: InvestmentRecommendationRequest): Promise<InvestmentRecommendationResponse> {
     await new Promise((r) => setTimeout(r, 290));
     const age = req.age || 26;
-    const income = req.income || 65000;
-    const expenses = req.expenses || 38500;
-    const currentEmergency = req.emergency_fund || 100000;
-    const investAmount = req.investment_amount || 10000;
+    const income = req.income ?? 0;
+    const expenses = req.expenses ?? 0;
+    const currentEmergency = req.emergency_fund ?? 0;
+    const investAmount = req.investment_amount ?? 0;
     const horizon = req.horizon_years || 7;
     const goal = req.goal || 'Wealth Creation';
     const riskCategory = req.risk_category || 'Moderate';
     const riskScore = req.risk_score || (riskCategory === 'Conservative' ? 2.0 : riskCategory === 'Moderate' ? 4.0 : 6.2);
+
+    if (income === 0 && expenses === 0 && investAmount === 0) {
+      return {
+        recommended_investment: 0,
+        emergency_target: 0,
+        emergency_gap: 0,
+        emergency_months: 0,
+        emergency_status: 'Healthy',
+        allocation: { low_risk: 0, equity: 0, cash: 0 },
+        allocated_amounts: { low_risk_inr: 0, equity_inr: 0, cash_inr: 0 },
+        asset_class_allocation: {
+          equity: 0,
+          debt_fixed_income: 0,
+          hybrid: 0,
+          gold: 0,
+          liquid_cash: 0,
+        },
+        asset_class_amounts: {
+          equity_inr: 0,
+          debt_fixed_income_inr: 0,
+          hybrid_inr: 0,
+          gold_inr: 0,
+          liquid_cash_inr: 0,
+        },
+        categories: [],
+        safety_adjustments_applied: [
+          'Account initialized with zero baseline data. Enter monthly income and capital to compute portfolio allocations.',
+        ],
+        surplus_ratio: 0,
+        warning: null,
+        explanation:
+          'Account initialized with zero baseline data. Enter monthly income and investable budget to compute portfolio allocations.',
+        enhanced_by_ai: false,
+      };
+    }
 
     const emergencyTarget = 6 * expenses;
     const emergencyGap = Math.max(0, emergencyTarget - currentEmergency);

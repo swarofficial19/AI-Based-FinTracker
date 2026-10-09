@@ -47,7 +47,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'transactions', label: 'Transactions', icon: ReceiptText },
     { id: 'analytics', label: 'Analytics', icon: BarChart3 },
-    { id: 'spending-prediction', label: 'Spending Prediction', icon: TrendingUp, badge: 'Model 2' },
+    { id: 'spending-prediction', label: 'Spending Prediction', icon: TrendingUp },
     { id: 'ai-insights', label: 'AI Models & Insights', icon: BrainCircuit, badge: '5 ML Models' },
     { id: 'wellbeing', label: 'Financial Well-Being', icon: HeartPulse },
     { id: 'advisor', label: 'Investment Advisor', icon: ShieldCheck },
@@ -148,13 +148,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <div className="flex items-center justify-between gap-2 p-1.5 rounded-lg">
             <div className="flex items-center gap-2.5 min-w-0">
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-200 text-slate-700 font-semibold text-xs">
-                {user?.name ? user.name.slice(0, 2).toUpperCase() : 'AS'}
+                {user?.name ? user.name.slice(0, 2).toUpperCase() : 'NU'}
               </div>
               <div className="min-w-0">
                 <p className="truncate text-xs font-semibold text-slate-800">
-                  {user?.name || 'Arjun Sharma'}
+                  {user?.name || 'New User'}
                 </p>
-                <p className="truncate text-[11px] text-slate-600">{user?.email || 'arjun@fintracker.ai'}</p>
+                <p className="truncate text-[11px] text-slate-600">{user?.email || 'user@fintracker.ai'}</p>
               </div>
             </div>
 

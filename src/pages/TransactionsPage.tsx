@@ -86,10 +86,8 @@ export const TransactionsPage: React.FC<TransactionsPageProps> = ({
   };
 
   const handleDelete = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this transaction entry?')) {
-      await api.deleteTransaction(id);
-      await fetchTransactions();
-    }
+    await api.deleteTransaction(id);
+    await fetchTransactions();
   };
 
   // Filtered & Sorted list
@@ -252,8 +250,16 @@ export const TransactionsPage: React.FC<TransactionsPageProps> = ({
         ) : filteredTransactions.length === 0 ? (
           <div className="py-12 text-center text-xs text-slate-500">
             <Receipt className="h-8 w-8 mx-auto mb-2 text-slate-400" />
-            <p className="font-semibold text-slate-700">No matching transactions found</p>
-            <p className="text-slate-400 mt-1">Try adjusting your search query or filter tags.</p>
+            <p className="font-semibold text-slate-700">
+              {transactions.length === 0
+                ? 'No transactions recorded yet'
+                : 'No matching transactions found'}
+            </p>
+            <p className="text-slate-400 mt-1">
+              {transactions.length === 0
+                ? 'Your ledger is clean with 0 entries. Click "+ Add Transaction" to record your first income or expense.'
+                : 'Try adjusting your search query or filter tags.'}
+            </p>
           </div>
         ) : (
           <div className="overflow-x-auto -mx-5">
